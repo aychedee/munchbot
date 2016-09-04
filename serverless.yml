@@ -1,0 +1,21 @@
+service: homer
+
+provider:
+  name: aws
+  runtime: python2.7
+
+plugin:
+  - serverless-secrets
+
+package:
+  include:
+    - vendored
+
+functions:
+  munch:
+    handler: handler.munch
+
+    events:
+      - http:
+          path: bot/munch
+          method: get

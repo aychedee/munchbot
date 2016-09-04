@@ -1,0 +1,3 @@
+vendored/
+node_modules/
+.serverless/
