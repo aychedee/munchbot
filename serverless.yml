@@ -14,8 +14,25 @@ package:
 functions:
   munch:
     handler: handler.munch
-
     events:
       - http:
           path: bot/munch
           method: get
+
+      - http:
+          path: bot/munch
+          method: post
+
+  oauth:
+    handler: handler.oauth
+    events:
+      - http:
+          path: oauth
+          method: get
+
+  gather:
+    handler: handler.gather
+    events:
+      - schedule:
+          rate: rate(3 hours)
+          enabled: true
