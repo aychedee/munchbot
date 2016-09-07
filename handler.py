@@ -1,5 +1,7 @@
 from datetime import datetime
 from random import choice
+from xml.etree.ElementTree as ET
+
 from vendored import boto3, requests
 
 
@@ -41,9 +43,6 @@ kv_store = KVStore()
 
 
 def munch(event, context):
-    kv_store.put('last_accessed', datetime.now().strftime('%Y-%m-%d %H:%M'))
-
-    print event, context
 
     if event['method'] == 'POST':
         body = event['body']
@@ -93,4 +92,20 @@ def oauth(event, context):
 
 def gather(event, context):
     print event, context
+    table = boto3.resource('dynamodb').Table('torrents')
+
+    response = request.get('http://extratorrent.cc/rss.xml?type=popular&cid=4')
+
+    feed = ET.fromstring(resonse.content)
+    for movie in root[0].findall('item'):
+        table.put_item(
+            Item={
+                'title': movie.find('title').text,
+                'size': movie.find('size').text,
+                'seeders': movie.find('seeders').text,
+                'torrent': movie.find('enclosure').attrib['url'],
+                'pub_date': movie.find('pubDate').text
+            }
+        )
+
     return 'ok'
