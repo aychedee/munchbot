@@ -1,6 +1,5 @@
-from datetime import datetime
 from random import choice
-from xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET
 
 from vendored import boto3, requests
 
@@ -63,7 +62,7 @@ def munch(event, context):
                     icon_emoji=choice(CAT_EMOJIS)
                 )
             )
-        print response.content
+            print response.content
 
     else:
         return {
@@ -94,10 +93,10 @@ def gather(event, context):
     print event, context
     table = boto3.resource('dynamodb').Table('torrents')
 
-    response = request.get('http://extratorrent.cc/rss.xml?type=popular&cid=4')
+    response = requests.get('http://extratorrent.cc/rss.xml?type=popular&cid=4')
 
-    feed = ET.fromstring(resonse.content)
-    for movie in root[0].findall('item'):
+    feed = ET.fromstring(response.content)
+    for movie in feed[0].findall('item'):
         table.put_item(
             Item={
                 'title': movie.find('title').text,
