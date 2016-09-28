@@ -1,57 +1,17 @@
-from datetime import datetime
-import urllib
-from random import choice
 import tempfile
 from threading import Thread
 import xml.etree.ElementTree as ET
 
 from vendored import boto3, requests
 import kvstore
+from bot import get_munch_bot
 
 s3 = boto3.client('s3')
-
-CAT_EMOJIS = [
-    ':cat:',
-    ':scream_cat:',
-    ':kissing_cat:',
-    ':crying_cat_face:',
-    ':pouting_cat:',
-    ':smirk_cat:'
-]
-
-MUNCH_PHRASES = [
-    'Arigato',
-    'Mmmm....',
-    'Where\'s my toy?',
-    'I see boring people',
-    'Is it dinner time yet?',
-    'When IS breakfast?'
-]
-
 SLACK_URL = 'https://slack.com/api/'
-
-TORRENT_URL = u'https://s3.amazonaws.com/munch.aychedee.com/torrents/{}.torrent'
-
-
-class Torrent(object):
-
-    def __init__(self, data):
-        self.published = datetime.strptime(
-                data['pub_date'][:25],
-            '%a, %d %b %Y %H:%M:%S'
-        )
-        self.pub_date = data['pub_date']
-        self.title = data['title']
-        try:
-            self.quoted_title = urllib.quote_plus(self.title, safe='()~')
-        except KeyError:
-            self.quoted_title = self.title
-        self.s3_url = TORRENT_URL.format(self.quoted_title)
-
-
 
 
 def munch(event, context):
+    print event
 
     if event['method'] == 'POST':
         body = event['body']
@@ -63,31 +23,18 @@ def munch(event, context):
     if event['body']['type'] == 'event_callback':
         msg_event = event['body']['event']
         if msg_event.get('subtype') != 'bot_message':
-            if 'torrent' in msg_event.get('text'):
-                table = boto3.resource('dynamodb').Table('torrents')
-                torrents =  sorted(
-                    [Torrent(t) for t in table.scan()['Items']],
-                    key=lambda t: t.published,
-                )
-                response_text = '\n'.join(
-                    [
-                        '{0.pub_date} -- {0.title}\n{0.s3_url}'.format(t) for
-                            t in torrents
-                    ]
-                )
-            else:
-                response_text = choice(MUNCH_PHRASES)
+            reply = get_munch_bot().instruct(msg_event.get('text'))
 
-            response = requests.post(
+            api_response = requests.post(
                 SLACK_URL + 'chat.postMessage',
                 data=dict(
                     token=kvstore.get_instance().munch_bot_access_token,
                     channel=msg_event['channel'],
-                    text=response_text,
-                    icon_emoji=choice(CAT_EMOJIS)
+                    text=reply['text'],
+                    icon_emoji=reply['face']
                 )
             )
-            print response.content
+            print api_response.content
 
     else:
         return {
